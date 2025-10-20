@@ -7,7 +7,6 @@ import { ApiResponse } from "../utils/apiResponse.js";
 
 const registerUser = asyncHandler( async (req, res) => {
     const {fullName, email, username, password} = req.body;
-    console.log(`email: ${email}\nfull name: ${fullName}\nusername: ${username}\npassword: ${password}\n`);
 
 
     // validation of fields
@@ -20,20 +19,20 @@ const registerUser = asyncHandler( async (req, res) => {
 
 
     // checking if the user already exists
-    const existedUser = User.findOne({
+    const existedUser = await User.findOne({
         $or: [{ username }, { email }]
     })
 
     if(existedUser) {
-        throw new ApiError(409, "User with this email or username already exists")
+        throw new ApiError(400, "User with this email or username already exists")
     }
 
 
-    // getting the local file paths to avatar and cover img and checking if avatar is empty
-    const avatarLocalPath = req.files?.avatar[0]?.path;
-    const coverImageLocalPath = req.file?.coverImage[0]?.path;
-
-    if(avatarLocalPath) {
+    // getting the local file paths to avatar and cover-img and checking if avatar is empty
+    const avatarLocalPath = req.files?.avatar?.[0]?.path;
+    const coverImageLocalPath = req.files?.coverImage?.[0]?.path;
+    
+    if(!avatarLocalPath) {
         throw new ApiError(400, "Avatar file is required")
     }
 
@@ -45,7 +44,9 @@ const registerUser = asyncHandler( async (req, res) => {
     if(!avatarRes) {
         throw new ApiError(400, "Avatar file is required")
     }
+    
 
+    // creating a user and saving record in the db
     const user = await User.create({
         fullName,
         avatar: avatarRes.url,
@@ -55,6 +56,8 @@ const registerUser = asyncHandler( async (req, res) => {
         username: username.toLowerCase(),
     })
     
+
+    //finding the created user by userId in db and raising an error if the user is not found
     const createdUser = await User.findById(user._id).select(
         "-password -refreshToken"
     );
@@ -63,6 +66,8 @@ const registerUser = asyncHandler( async (req, res) => {
         throw new ApiError(500, "Something went wrong while registering the user")
     }
 
+
+    // returning a success response
     return res.status(201).json(
         new ApiResponse(
             201,
