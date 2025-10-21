@@ -260,9 +260,11 @@ const getCurrentUser = asyncHandler( async (req, res) => {
     return res
     .status(200)
     .json(
-        200,
-        res.user,
-        'User successfully fetched'
+       new ApiResponse(
+            200,
+            res.user,
+            'User successfully fetched'
+       )
     );
 } );
 
